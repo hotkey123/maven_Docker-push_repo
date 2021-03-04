@@ -1,0 +1,39 @@
+stages:
+  - Maven_Build_Package
+  - Docker-Image
+
+Maven_Build_Package:
+  image: maven:latest
+  stage: Maven_Build_Package
+  variables:
+    MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  cache:
+    paths:
+      - .m2/repository/
+      - target/
+  before_script:
+    - echo "ls"
+  script:
+    - "mvn install -B"
+    - mvn clean package
+  artifacts:
+    paths:
+      - target/*
+
+Docker-Image:
+  stage: Docker-Image
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker info
+    - echo ${CI_JOB_ID}
+  script:
+    - docker -v
+    - docker image ls
+    - docker build -t web-application.jar .
+    - docker login -u ${username} -p ${password}
+    - docker tag web-application.jar hotkeykiran123/java_project:web-application_${CI_JOB_ID}
+    - docker image ls
+    - docker push hotkeykiran123/java_project:web-application_${CI_JOB_ID}
+  when: on_success
